@@ -1,4 +1,7 @@
 # password-manager-in-secured-c
 This is a simple c project created for the course on secure programming with c
 
+
+## added basic login and registring
+--> user can now register and the password will be encrypted(hbj encryption) and stored in the csv file
 **project synopsis link:** https://docs.google.com/document/d/1ICZAAFRylhjKVmWGQN_JVawi2--ODBD7AfXWAu9G6ms/edit?usp=sharing
