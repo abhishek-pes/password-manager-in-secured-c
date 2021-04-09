@@ -10,7 +10,11 @@ This is a simple c project created for the course on secure programming with c
       
       utilites.c --> 3 warnings 0 errors
 
+      menu.c ---> 0 errors 0 warnings
 
+
+--> added login functionality and a implemented a structure for temp storage
+--> the master passwords has 2 layer of encryption and it is stored in binary file (since binary file cannot be easily read from outside , secured and can store high amount of data)
 
 
 ## Links

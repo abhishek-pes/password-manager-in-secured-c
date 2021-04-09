@@ -1,17 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include "utilities.h"
-// void reg1()
-// {
-//     char user[20];
-//     char pwd[20];
-//     printf("Enter Username: \n");
-//     (void)fgets(user,20,stdin);
-//     clean_stdin();
-//     printf("Set the master password: \n");
-//     (void)fgets(pwd,20,stdin);
-//     printf("%s  %s",user,pwd);
-// }
+
 int main()
 {
     printf("\t\tPASSWORD MANAGER\n");
@@ -24,6 +14,7 @@ int main()
     {
         case 1:
                 printf("this is the login page\n");
+                logging();
                 break;
 
         case 2:
