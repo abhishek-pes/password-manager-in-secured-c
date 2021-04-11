@@ -1,1 +1,1 @@
-void logged_in();
+void logged_in(char *str);
