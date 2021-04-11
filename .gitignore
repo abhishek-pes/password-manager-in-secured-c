@@ -1,0 +1,5 @@
+*.swp
+*.out
+*.exe
+*/*.exe
+*/*.out
