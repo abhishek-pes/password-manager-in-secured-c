@@ -1,7 +1,7 @@
 # password-manager-in-secured-c
 This is a simple c project created for the course on secure programming with c
 
-how to run it : gcc screens.c utilities.c client.c 
+how to run it : gcc menu.c utilities.c client.c -l sqlite3
 
 
 ## added basic login and registring

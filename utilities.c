@@ -48,7 +48,7 @@ static void searchrecord(char *str,unsigned long num)
         {
             test = 0;
             printf("\n\twelcome %s ",str);
-            logged_in();
+            logged_in(str);
         }
             
 
