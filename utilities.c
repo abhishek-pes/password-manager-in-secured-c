@@ -27,37 +27,6 @@ static void test(char *str,unsigned long num)
    (void)fwrite(&p,sizeof(p),1,f);
 }
 
-//searching the binary file
-static void searchrecord(char *str,unsigned long num)
-{
-    struct test p;
-    FILE *f;
-
-    f=fopen("Record1","rb");
-    if(f==NULL)
-    {
-        printf("\n error in opening\a\a\a\a");
-        exit(0);
-
-    }
-
-    int test = -1;
-    while(fread(&p,sizeof(p),1,f)==1)
-    {
-        if(strcmp(p.name,str)==0 && p.pin == num)
-        {
-            test = 0;
-            printf("\n\twelcome %s ",str);
-            logged_in(str);
-        }
-            
-
-    }
-    if(test == -1)
-        printf("\nINVALID USER NAME OR PASSWORD");
-    (void)fclose(f);
-}
-
 
 //storing the passwd in a file (temp)
 static void store_master_password(char *usr,unsigned long pswd)
@@ -144,8 +113,10 @@ void reg()
     unsigned long num;
     num = hash(encrp_1);                  //second layer of encryption
     printf("%s  %lu",user,num);
-    store_master_password(user,num);      //storing it in a .csv file for observation only.
-    test(user,num);
+    if (! register_user(user, num))
+    {
+	    printf("Registered Successfully\n");
+    }
 }
 
 //function for logging

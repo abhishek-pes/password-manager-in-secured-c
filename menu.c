@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<string.h>
 #include "utilities.h"
+#include "menu.h"
 #include <sqlite3.h>
 
 void logged_in(char *str);
@@ -182,21 +183,6 @@ void logged_in(char *str)
 {
     printf("\nHello %s you have succesfully logged in\n",str);
     create_table(str);
-    FILE *fptr;
-    char file_str[100] = "./db/db_";
-    strcat(file_str,str);
-    fptr = fopen(file_str,"rb");
-    if(fptr == NULL)
-    {
-        printf("\n Intitalising files ...\n");
-        fptr = fopen(file_str,"ab+");
-        if(fptr == NULL)
-        {
-            printf("\nError!");
-            exit(0);
-        }
-    }
-    (void)fclose(fptr);
     printf("\n\n1. Store Passwords");
     printf("\n2. Delete Password");
     printf("\n3. Modify passwords");
@@ -272,3 +258,87 @@ void logged_in(char *str)
                 break;
     }
 }
+
+//Inserting username and password into database
+int register_user(char *str, unsigned long num)
+{
+   sqlite3 *db;
+   char *zErrMsg = 0;
+   int rc;
+   rc = sqlite3_open("test.db", &db);
+   if( rc ) {
+      	fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+   } else {
+      	fprintf(stderr, "Opened database successfully\n");
+   }
+   /*SQL statements*/
+   char s1[200] = "INSERT INTO USERS ";
+   char s2[200] = " VALUES('";
+   strcat(s2,str);
+   char s3[130] = "','";
+   char passwd[100];
+   sprintf(passwd, "%lu", num);
+   strcat(s3,passwd);
+   char s4[30] = "');";
+   strcat(s3,s4);
+   strcat(s2,s3);
+   strcat(s1,s2);
+
+   rc = sqlite3_exec(db, s1, callback, 0, &zErrMsg);
+
+   if( rc != SQLITE_OK ){
+      fprintf(stderr, "Error: %s\n", zErrMsg);
+      sqlite3_free(zErrMsg);
+      return 1;
+   } 
+
+   sqlite3_close(db);
+   return 0;
+}	
+
+//Searching the database for user password
+void searchrecord(char *str,unsigned long num)
+{
+   sqlite3 *db;
+    char *err_msg = 0;
+    sqlite3_stmt *res;
+    
+    int rc = sqlite3_open("test.db", &db);
+    
+    if (rc != SQLITE_OK) {
+        
+        fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        
+        return;
+    }
+    
+    char *sql = "SELECT master_password FROM USERS WHERE username = ?";
+        
+    rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);
+    
+    if (rc == SQLITE_OK) {
+        
+        sqlite3_bind_text(res, 1, str, -1, 0);
+    } else {
+        
+        fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+    }
+    
+    int step = sqlite3_step(res);
+    char pwd[200];
+    sprintf(pwd, "%lu", num);
+
+    if (strcmp(sqlite3_column_text(res, 0), pwd)==0) {
+        sqlite3_finalize(res);
+    	sqlite3_close(db);
+        printf("\n\twelcome %s ",str);
+        logged_in(str);
+    } 
+    else {
+	printf("\nINVALID USER NAME OR PASSWORD");
+    }
+    sqlite3_finalize(res);
+    sqlite3_close(db);
+}
+    
