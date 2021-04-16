@@ -309,9 +309,41 @@ void show_all_passcode(char *user)
 
 }
 
+void check_count(char *user)
+{
+      sqlite3 *db1;
+      int rc;
+      rc = sqlite3_open("test.db", &db1);
+   	sqlite3_stmt *stmt;
+   	char query[100] = "SELECT COUNT(*) FROM Passcode WHERE username='";
+   	strcat(query, user);
+   	char qEND[10] = "';";
+   	strcat(query, qEND);
+   	rc = sqlite3_prepare_v2(db1, query, -1, &stmt, NULL);
+   	if(rc != SQLITE_OK)
+   	{
+	   fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db1));
+   	}
+   	rc = sqlite3_step(stmt);
+   	if(rc != SQLITE_ROW)
+   	{
+	   fprintf(stderr, "No rows returned: %s\n", sqlite3_errmsg(db1));
+   	}
+   	int row_count = sqlite3_column_int(stmt, 0);
+	if(row_count < 2)
+	{
+      sqlite3_finalize(stmt);
+      sqlite3_close(db1);
+		passcode(user);
+	}
+   sqlite3_finalize(stmt);
+   sqlite3_close(db1);
+}
+
+
 void delete_passcode(char* user, char* pass)
 {
-	sqlite3 *db;
+	   sqlite3 *db;
    	char *zErrMsg = 0;
    	int rc;
    	rc = sqlite3_open("test.db", &db);
@@ -331,28 +363,13 @@ void delete_passcode(char* user, char* pass)
       		fprintf(stderr, "SQL error: %s\n", zErrMsg);
       		sqlite3_free(zErrMsg);
    	}
-	//check the remaining number of passcodes for a username
-   	sqlite3_stmt *stmt;
-   	char query[100] = "SELECT COUNT(*) FROM Passcode WHERE username='";
-   	strcat(query, user);
-   	char qEND[10] = "';";
-   	strcat(query, qEND);
-   	rc = sqlite3_prepare_v2(db, query, -1, &stmt, NULL);
-   	if(rc != SQLITE_OK)
-   	{
-	   fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
-   	}
-   	rc = sqlite3_step(stmt);
-   	if(rc != SQLITE_ROW)
-   	{
-	   fprintf(stderr, "No rows returned: %s\n", sqlite3_errmsg(db));
-   	}
-   	int row_count = sqlite3_column_int(stmt, 0);
-	if(row_count < 1)
-	{
-		passcode(user);
-	}
+      sqlite3_close(db);
+   	//check the remaining number of passcodes for a username
+
+
 }
+
+
 
 void check_passcode(char* user, char* pass)
 {
@@ -387,6 +404,7 @@ void check_passcode(char* user, char* pass)
     if (strcmp(sqlite3_column_text(res, 0), user)==0) {
          sqlite3_finalize(res);
     	   sqlite3_close(db);
+         check_count(user);
 	      delete_passcode(user, pass);
          printf("\n\twelcome %s ",user);
          logged_in(user);
@@ -627,6 +645,7 @@ void passcode(char* user)
 {
 	srand(time(NULL));
 	sqlite3 *db;
+   sqlite3_stmt *res;
    	char *zErrMsg = 0;
    	int rc;
    	rc = sqlite3_open("test.db", &db);
@@ -646,13 +665,16 @@ void passcode(char* user)
 		strcat(s3, s4);
    		strcat(s2,s3);
    		strcat(s1,s2);
-   		rc = sqlite3_exec(db, s1, callback, 0, &zErrMsg);
+
+   	rc = sqlite3_prepare_v2(db, s1, -1, &res, NULL);
 
    		if( rc != SQLITE_OK ){
       	    	    fprintf(stderr, "SQL error: %s\n", zErrMsg);
             	    sqlite3_free(zErrMsg);
    		}
 	}
+   rc= sqlite3_step(res);
+   sqlite3_finalize(res);
+   sqlite3_close(db);
 
-   	sqlite3_close(db);
 }
