@@ -74,7 +74,7 @@ static void store(char *name , char * pwd , char *user)
       fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
       logged_in(user);
    } else {
-      fprintf(stderr, "Opened database successfully\n");
+      fprintf(stderr, "\nSTORING DATA...");
    }
    
 
@@ -96,7 +96,7 @@ static void store(char *name , char * pwd , char *user)
       sqlite3_free(zErrMsg);
    } 
    else {
-	printf("\n data stored succesfully.");
+	printf("\nTHE DATA IS STORED SUCCESFULLY.");
    }
    sqlite3_close(db);
    
@@ -113,7 +113,7 @@ static void show_all_passwords(char *user)
       fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
    logged_in(user);
    } else {
-      fprintf(stderr, "Opened database successfully\n");
+      fprintf(stderr, "\nOpened database successfully\n");
    }
    char s1[30] = "SELECT * FROM ";
    strcat(s1,user);
@@ -133,6 +133,7 @@ static void get_single_pass(char * website_name , char *user)
 {
    sqlite3 *db;
    char *zErrMsg = 0;
+   sqlite3_stmt *res;
    int rc;
    const char* data = "Callback function called";
    rc = sqlite3_open("test.db", &db);
@@ -150,11 +151,19 @@ static void get_single_pass(char * website_name , char *user)
    char s3[50] = "';";
    strcat(s2,s3);
    strcat(s1,s2);
-   rc = sqlite3_exec(db, s1, callback, 0, &zErrMsg);
 
+   rc = sqlite3_prepare_v2(db, s1, -1, &res, 0);
+   int step = sqlite3_step(res);
+   if(step == SQLITE_ROW)
+   {
+   rc = sqlite3_exec(db, s1, callback, 0, &zErrMsg);
    if( rc != SQLITE_OK ){
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
+   }
+   }
+   else{
+      printf("\nNO SUCH DATA FOUND");
    }
 
    sqlite3_close(db);
@@ -167,6 +176,7 @@ static void delete_password(char *site_name , char *user)
    sqlite3 *db;
    char *zErrMsg = 0;
    int rc;
+   sqlite3_stmt *res;
    rc = sqlite3_open("test.db", &db);
    if( rc ) {
       fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
@@ -181,15 +191,80 @@ static void delete_password(char *site_name , char *user)
    char s3[10] = "';";
    strcat(s2,s3);
    strcat(s1,s2);
+   rc = sqlite3_prepare_v2(db, s1, -1, &res, 0);
+   int step = sqlite3_step(res);
+   if(step == SQLITE_ROW)
+   {
    rc = sqlite3_exec(db, s1, callback, 0, &zErrMsg);
 
    if( rc != SQLITE_OK ){
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
    } 
+   }
+   else
+   {
+      printf("\nNO SUCH DATA FOUND");
+      sqlite3_close(db);
+      logged_in(user);
+
+   }
    sqlite3_close(db);
-   printf("\n data deleted");
+   printf("\nDATA DELETED SUCCESFULLY");
    logged_in(user);
+}
+
+
+static void modify_password(char * website_name , char *user, char *newpwd)
+{
+   sqlite3 *db;
+   char *zErrMsg = 0;
+   sqlite3_stmt *res;
+   int rc;
+   const char* data = "Callback function called";
+   rc = sqlite3_open("test.db", &db);
+   if( rc ) {
+      fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+   logged_in(user);
+   } else {
+      fprintf(stderr, "Opened database successfully\n");
+   }
+   char st_check[50] = "SELECT * FROM ";
+   strcat(st_check,user);
+   char st[30] = " WHERE WEBSITE_NAME='";
+   strcat(st,website_name);
+   char st1[30]="';";
+   strcat(st,st1);
+   strcat(st_check,st);
+   rc = sqlite3_prepare_v2(db, st_check, -1, &res, 0);
+   int step = sqlite3_step(res);
+   if(step == SQLITE_ROW)
+{
+   char s1[50] = "UPDATE ";
+   strcat(s1,user);
+   char s2[50] = " SET PASSWORD='";
+   strcat(s2,newpwd);
+   char s3[50] = "' WHERE WEBSITE_NAME='";
+   strcat(s3,website_name);
+   char s4[50] = "';";
+   strcat(s3,s4);
+   strcat(s2,s3);
+   strcat(s1,s2);
+   printf("\n the statement is %s",s1);
+   
+   rc = sqlite3_exec(db, s1, callback, 0, &zErrMsg);
+   if( rc != SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+      sqlite3_free(zErrMsg);
+   }
+}
+   else{
+      printf("\nNO SUCH DATA FOUND");
+   }
+
+   sqlite3_close(db);
+   logged_in(user);
+
 }
 
 void show_all_passcode(char *user)
@@ -293,14 +368,16 @@ void check_passcode(char* user, char* pass)
     }
     
     int step = sqlite3_step(res);
-
+    if(step == SQLITE_ROW)
+{
     if (strcmp(sqlite3_column_text(res, 0), user)==0) {
-        sqlite3_finalize(res);
-    	sqlite3_close(db);
-	delete_passcode(user, pass);
-        printf("\n\twelcome %s ",user);
-        logged_in(user);
+         sqlite3_finalize(res);
+    	   sqlite3_close(db);
+	      delete_passcode(user, pass);
+         printf("\n\twelcome %s ",user);
+         logged_in(user);
     } 
+}
     else {
 	printf("\nInvalid Passcode\n");
     }
@@ -310,7 +387,9 @@ void check_passcode(char* user, char* pass)
 
 void logged_in(char *str)
 {
-    printf("\nHello %s you have succesfully logged in\n",str);
+    int r; 
+    printf("\n===========================================================");
+    printf("\nUSER: %s   STATUS: LOGGED-IN\n",str);
     printf("\n\n1. Store Passwords");
     printf("\n2. Delete Password");
     printf("\n3. Modify passwords");
@@ -319,12 +398,13 @@ void logged_in(char *str)
     printf("\n6. Show all passcodes");
     printf("\n7. Logout\n");
     int choice;
+    printf("\nEnter Your Choice: ");
     (void)scanf("%d",&choice);
     clean_stdin();
     switch(choice)
     {
         case 1:
-                printf("\nthis is the store password page\n");
+                printf("\n--------------------------------------------------------------\n");
                 char website_name[50];
                 char passwd[20];
                 printf("\nEnter the website name: ");
@@ -333,57 +413,76 @@ void logged_in(char *str)
                 printf("\nEnter the password: ");
                 fgets(passwd,20,stdin);
                 passwd[strlen(passwd) - 1] = '\0';
-                store(website_name,passwd,str);
+                r  = password_strength(passwd);
+                if(r==1)
+                {
+                  printf("\n--------------------------------------------------------------\n");
+                  store(website_name,passwd,str);
+                }
+                else
+                {
+                  printf("\nYour Password is weak , use a password with 6 characters or more , uppercase , lowercase , numbers and special characters (!,@,#,$,%c,^,&,*\n",'%');
+                  logged_in(str);
+                }
                 break;
 
         case 2:
-                printf("this is the delete password page\n");
+                printf("\n--------------------------------------------------------------\n");
                 char name[50];
                 printf("\n Enter the website name to delete: ");
                 fgets(name,50,stdin);
                 name[strlen(name) - 1] = '\0';
+                printf("\n--------------------------------------------------------------\n");
                 delete_password(name,str);
                 break;
 
         case 3:
-                printf("this is the modify password page\n");
+                printf("\n--------------------------------------------------------------\n");
                 char old_name[50];
-                char new_name[50];
                 char new_password[50];
                 printf("\n Enter the website name to modify: ");
                 fgets(old_name,50,stdin);
                 old_name[strlen(old_name) - 1] = '\0';
-                printf("\n Enter the new website name: ");
-                fgets(new_name,50,stdin);
-                new_password[strlen(new_name) - 1] = '\0';
                 printf("\n Enter the new password: ");
                 fgets(new_password,50,stdin);
                 new_password[strlen(new_password) - 1] = '\0';
-                store(new_name,new_password,str);
+                int r  = password_strength(new_password);
+                if(r==1)
+                {
+                  printf("\n--------------------------------------------------------------\n");
+                  modify_password(old_name,str,new_password);
+                }
+                else
+                {
+                  printf("\nYour Password is weak , use a password with 6 characters or more , uppercase , lowercase , numbers and special characters (!,@,#,$,%c,^,&,*\n",'%');
+                  logged_in(str);
+                }
                 break;
         case 4:
-                printf("this is the check password page\n");
+                printf("\n--------------------------------------------------------------\n");
                 char site_name[50];
                 printf("\n Enter the website name to get the password for it: ");
                 fgets(site_name,50,stdin);
                 site_name[strlen(site_name) - 1] = '\0';
+                printf("\n--------------------------------------------------------------\n");
                 get_single_pass(site_name,str);
 
                 break;
         
         case 5:
-               printf("this is the check all passwords page\n");
+               printf("\n--------------------------------------------------------------\n");
                show_all_passwords(str);
                break;
         
-	case 6:
-	       printf("this is show all passcodes page\n");
-	       show_all_passcode(str);
-	       break;
+	     case 6:
+               printf("\n--------------------------------------------------------------\n");
+               show_all_passcode(str);
+               printf("\n--------------------------------------------------------------\n");
+               break;
 
         case 7: 
-                printf("this is the logout page\n");
-                exit(0);
+                printf("\nLOGGING OUT...\n\n");
+                main_menu();
                 break;
 
         default:
@@ -436,8 +535,8 @@ int register_user(char *str, unsigned long num)
 void searchrecord(char *str,unsigned long num)
 {
    sqlite3 *db;
-    char *err_msg = 0;
-    sqlite3_stmt *res;
+   char *err_msg = 0;
+   sqlite3_stmt *res;
     
     int rc = sqlite3_open("test.db", &db);
     
@@ -456,6 +555,7 @@ void searchrecord(char *str,unsigned long num)
     if (rc == SQLITE_OK) {
         
         sqlite3_bind_text(res, 1, str, -1, 0);
+
     } else {
         
         fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
@@ -464,15 +564,17 @@ void searchrecord(char *str,unsigned long num)
     int step = sqlite3_step(res);
     char pwd[200];
     sprintf(pwd, "%lu", num);
-
+    if(step == SQLITE_ROW)
+    {
     if (strcmp(sqlite3_column_text(res, 0), pwd)==0) {
         sqlite3_finalize(res);
     	sqlite3_close(db);
-        printf("\n\twelcome %s ",str);
+        printf("\n\t\t WELCOME %s ",str);
         logged_in(str);
+    }
     } 
     else {
-	printf("\nINVALID USER NAME OR PASSWORD");
+      printf("\nINVALID USER NAME OR PASSWORD\n");
     }
     sqlite3_finalize(res);
     sqlite3_close(db);
@@ -511,3 +613,4 @@ void passcode(char* user)
 
    	sqlite3_close(db);
 }
+
