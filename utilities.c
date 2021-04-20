@@ -137,3 +137,14 @@ void logging()
     //store_master_password(user,num);
     searchrecord(user,num);
 }
+
+char* random_number()
+{
+		static  char pass[12];
+		for(int ind=0; ind<12; ind++)
+		{
+				int num = rand()%10;
+				pass[ind] = num + '0';
+		}
+		return pass;
+}

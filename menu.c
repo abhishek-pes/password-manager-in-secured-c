@@ -4,6 +4,9 @@
 #include "utilities.h"
 #include "menu.h"
 #include <sqlite3.h>
+#include <time.h>
+
+void passcode(char* user);
 
 void logged_in(char *str);
 
@@ -39,8 +42,19 @@ static int create_table(char *str) {
 
    /* Execute SQL statement */
    rc = sqlite3_exec(db, s1, callback, 0, &zErrMsg);
+   char s3[300] = "CREATE TRIGGER format_";
+   strcat(s3,str);
+   char s4[250] = " BEFORE INSERT ON ";
+   strcat(s4,str);
+   char s5[200] = " BEGIN SELECT CASE "\
+		   "WHEN ((NEW.WEBSITE_NAME LIKE '% %') OR (NEW.WEBSITE_NAME Like '') OR (NEW.PASSWORD LIKE '% %') OR (NEW.PASSWORD Like '') ) THEN "\
+		   "RAISE (ABORT, 'Invalid format') END;"\
+		   "END;";
+   strcat(s4, s5);
+   strcat(s3, s4);
+   int RC = sqlite3_exec(db, s3, callback, 0, &zErrMsg);
    
-   if( rc != SQLITE_OK ){
+   if( rc != SQLITE_OK || RC != SQLITE_OK){
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
    } else {
@@ -66,7 +80,7 @@ static void store(char *name , char * pwd , char *user)
 
    char s1[100] = "INSERT INTO ";
    strcat(s1,user);
-   char s2[30] = " VALUES('";
+   char s2[50] = " VALUES('";
    strcat(s2,name);
    char s3[30] = "','";
    strcat(s3,pwd);
@@ -81,9 +95,11 @@ static void store(char *name , char * pwd , char *user)
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
    } 
-
+   else {
+	printf("\n data stored succesfully.");
+   }
    sqlite3_close(db);
-   printf("\n data stored succesfully.");
+   
    logged_in(user);
 }
 
@@ -171,24 +187,137 @@ static void delete_password(char *site_name , char *user)
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
    } 
-
    sqlite3_close(db);
    printf("\n data deleted");
    logged_in(user);
 }
 
+void show_all_passcode(char *user)
+{
+   sqlite3 *db;
+   char *zErrMsg = 0;
+   int rc;
+   rc = sqlite3_open("test.db", &db);
+   if( rc ) {
+      fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+   logged_in(user);
+   } else {
+      fprintf(stderr, "Opened database successfully\n");
+   }
+   char s1[80] = "SELECT * FROM Passcode WHERE username='";
+   strcat(s1,user);
+   char s2[10] = "';";
+   strcat(s1,s2);
+   rc = sqlite3_exec(db, s1, callback, 0, &zErrMsg);
 
+   if( rc != SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+      sqlite3_free(zErrMsg);
+   } 
+
+   sqlite3_close(db);
+   logged_in(user);
+
+}
+
+void delete_passcode(char* user, char* pass)
+{
+	sqlite3 *db;
+   	char *zErrMsg = 0;
+   	int rc;
+   	rc = sqlite3_open("test.db", &db);
+   	if( rc ) {
+      	    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+   	    return;
+   	} else {
+      	    fprintf(stderr, "Opened database successfully\n");
+   	}
+	char s1[80] = "DELETE FROM Passcode WHERE code='";
+   	strcat(s1, pass);
+   	char s2[10] = "';";
+   	strcat(s1,s2);
+   	rc = sqlite3_exec(db, s1, callback, 0, &zErrMsg);
+
+   	if( rc != SQLITE_OK ){
+      		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+      		sqlite3_free(zErrMsg);
+   	}
+	//check the remaining number of passcodes for a username
+   	sqlite3_stmt *stmt;
+   	char query[100] = "SELECT COUNT(*) FROM Passcode WHERE username='";
+   	strcat(query, user);
+   	char qEND[10] = "';";
+   	strcat(query, qEND);
+   	rc = sqlite3_prepare_v2(db, query, -1, &stmt, NULL);
+   	if(rc != SQLITE_OK)
+   	{
+	   fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+   	}
+   	rc = sqlite3_step(stmt);
+   	if(rc != SQLITE_ROW)
+   	{
+	   fprintf(stderr, "No rows returned: %s\n", sqlite3_errmsg(db));
+   	}
+   	int row_count = sqlite3_column_int(stmt, 0);
+	if(row_count < 1)
+	{
+		passcode(user);
+	}
+}
+
+void check_passcode(char* user, char* pass)
+{
+    sqlite3 *db;
+    sqlite3_stmt *res;
+    
+    int rc = sqlite3_open("test.db", &db);
+    
+    if (rc != SQLITE_OK) {
+        
+        fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        
+        return;
+    }
+    
+    char *sql = "SELECT username FROM Passcode WHERE code = ?";
+        
+    rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);
+    
+    if (rc == SQLITE_OK) {
+        
+        sqlite3_bind_text(res, 1, pass, -1, 0);
+    } else {
+        
+        fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+    }
+    
+    int step = sqlite3_step(res);
+
+    if (strcmp(sqlite3_column_text(res, 0), user)==0) {
+        sqlite3_finalize(res);
+    	sqlite3_close(db);
+	delete_passcode(user, pass);
+        printf("\n\twelcome %s ",user);
+        logged_in(user);
+    } 
+    else {
+	printf("\nInvalid Passcode\n");
+    }
+    sqlite3_finalize(res);
+    sqlite3_close(db);
+}
 
 void logged_in(char *str)
 {
     printf("\nHello %s you have succesfully logged in\n",str);
-    create_table(str);
     printf("\n\n1. Store Passwords");
     printf("\n2. Delete Password");
     printf("\n3. Modify passwords");
     printf("\n4. Check a password");
     printf("\n5. Check all passwords");
-    printf("\n6. Logout\n");
+    printf("\n6. Show all passcodes");
+    printf("\n7. Logout\n");
     int choice;
     (void)scanf("%d",&choice);
     clean_stdin();
@@ -247,7 +376,12 @@ void logged_in(char *str)
                show_all_passwords(str);
                break;
         
-        case 6: 
+	case 6:
+	       printf("this is show all passcodes page\n");
+	       show_all_passcode(str);
+	       break;
+
+        case 7: 
                 printf("this is the logout page\n");
                 exit(0);
                 break;
@@ -293,6 +427,8 @@ int register_user(char *str, unsigned long num)
    } 
 
    sqlite3_close(db);
+   passcode(str);
+   create_table(str);
    return 0;
 }	
 
@@ -341,4 +477,37 @@ void searchrecord(char *str,unsigned long num)
     sqlite3_finalize(res);
     sqlite3_close(db);
 }
-    
+
+void passcode(char* user)
+{
+	srand(time(NULL));
+	sqlite3 *db;
+   	char *zErrMsg = 0;
+   	int rc;
+   	rc = sqlite3_open("test.db", &db);
+  	if( rc ) {
+      	    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+	    return;
+         }
+   	for(int i=0;i<3;i++)
+	{
+		char* passnum = random_number();
+		char s1[100] = "INSERT INTO Passcode ";
+   		char s2[30] = " VALUES('";
+   		strcat(s2, user);
+   		char s3[30] = "','";
+		strcat(s3, passnum);
+		char* s4 = "');";
+		strcat(s3, s4);
+   		strcat(s2,s3);
+   		strcat(s1,s2);
+   		rc = sqlite3_exec(db, s1, callback, 0, &zErrMsg);
+
+   		if( rc != SQLITE_OK ){
+      	    	    fprintf(stderr, "SQL error: %s\n", zErrMsg);
+            	    sqlite3_free(zErrMsg);
+   		}
+	}
+
+   	sqlite3_close(db);
+}
