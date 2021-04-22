@@ -672,9 +672,9 @@ void passcode(char* user)
       	    	    fprintf(stderr, "SQL error: %s\n", zErrMsg);
             	    sqlite3_free(zErrMsg);
    		}
+      rc= sqlite3_step(res);
 	}
-   rc= sqlite3_step(res);
-   sqlite3_finalize(res);
-   sqlite3_close(db);
+      sqlite3_finalize(res);
+      sqlite3_close(db);
 
 }
