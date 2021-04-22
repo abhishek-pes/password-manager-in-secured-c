@@ -10,19 +10,7 @@
 //function to check password strength
 
 
-//storing the passwd in a file (temp)
-static void store_master_password(char *usr,unsigned long pswd)
-{
-    FILE *fptr;
-    
-    fptr = fopen("./master_password.csv","a");
-    if(fptr == NULL)
-    {
-        printf("Error!");   
-        exit(0);             
-    }
-    fprintf(fptr,"%s,%lu\n",usr,pswd);
-}
+
 
 //djb hash function
 unsigned long hash(char *str)
@@ -67,7 +55,7 @@ int password_strength(char *message)
             has_special=true;
 
     }
-    if(has_lower == true && has_upper == true && has_size == true && has_number == true && has_special == true)
+    if(has_lower  && has_upper  && has_size && has_number && has_special)
         return 1;
     else
     {
