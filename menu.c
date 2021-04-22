@@ -30,7 +30,7 @@ static int create_table(char *str) {
       fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
       return(0);
    } else {
-      fprintf(stderr, "Opened database successfully\n");
+      fprintf(stderr, "Created database for User\n");
    }
    /* Create SQL statement */
    char s1[100] = "CREATE TABLE ";
@@ -76,8 +76,6 @@ static void store(char *name , char * pwd , char *user)
    } else {
       fprintf(stderr, "\nSTORING DATA...");
    }
-   
-
    char s1[100] = "INSERT INTO ";
    strcat(s1,user);
    char s2[50] = " VALUES('";
@@ -202,18 +200,10 @@ static void delete_password(char *site_name , char *user)
       sqlite3_free(zErrMsg);
    } 
    }
-   else
-   {
-      printf("\nNO SUCH DATA FOUND");
-      sqlite3_close(db);
-      logged_in(user);
-
-   }
    sqlite3_close(db);
    printf("\nDATA DELETED SUCCESFULLY");
    logged_in(user);
 }
-
 
 static void modify_password(char * website_name , char *user, char *newpwd)
 {
@@ -229,17 +219,6 @@ static void modify_password(char * website_name , char *user, char *newpwd)
    } else {
       fprintf(stderr, "Opened database successfully\n");
    }
-   char st_check[50] = "SELECT * FROM ";
-   strcat(st_check,user);
-   char st[30] = " WHERE WEBSITE_NAME='";
-   strcat(st,website_name);
-   char st1[30]="';";
-   strcat(st,st1);
-   strcat(st_check,st);
-   rc = sqlite3_prepare_v2(db, st_check, -1, &res, 0);
-   int step = sqlite3_step(res);
-   if(step == SQLITE_ROW)
-{
    char s1[50] = "UPDATE ";
    strcat(s1,user);
    char s2[50] = " SET PASSWORD='";
@@ -257,11 +236,46 @@ static void modify_password(char * website_name , char *user, char *newpwd)
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
    }
-}
-   else{
-      printf("\nNO SUCH DATA FOUND");
-   }
+   sqlite3_close(db);
+   logged_in(user);
 
+}
+
+
+//sqlite function for modifying master password
+static void modify_master_password(char *user, unsigned long newpwd)
+{
+   sqlite3 *db;
+   char *zErrMsg = 0;
+   sqlite3_stmt *res;
+   int rc;
+   const char* data = "Callback function called";
+   rc = sqlite3_open("test.db", &db);
+   if( rc ) {
+      fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+   logged_in(user);
+   } else {
+      fprintf(stderr, "Opened database successfully\n");
+   }
+   char s1[50] = "UPDATE USERS";
+   char s2[50] = " SET master_password='";
+   char passwd[100];
+   sprintf(passwd, "%lu", newpwd);
+
+   strcat(s2,passwd);
+   char s3[50] = "' WHERE username='";
+   strcat(s3,user);
+   char s4[50] = "';";
+   strcat(s3,s4);
+   strcat(s2,s3);
+   strcat(s1,s2);
+   printf("\n the statement is %s",s1);
+   
+   rc = sqlite3_exec(db, s1, callback, 0, &zErrMsg);
+   if( rc != SQLITE_OK ){
+      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+      sqlite3_free(zErrMsg);
+   }
    sqlite3_close(db);
    logged_in(user);
 
@@ -396,7 +410,8 @@ void logged_in(char *str)
     printf("\n4. Check a password");
     printf("\n5. Check all passwords");
     printf("\n6. Show all passcodes");
-    printf("\n7. Logout\n");
+    printf("\n7. Change master password");
+    printf("\n8. Logout\n");
     int choice;
     printf("\nEnter Your Choice: ");
     (void)scanf("%d",&choice);
@@ -480,7 +495,34 @@ void logged_in(char *str)
                printf("\n--------------------------------------------------------------\n");
                break;
 
-        case 7: 
+        case 7:
+               printf("\n--------------------------------------------------------------\n");
+               char new_pwd[50];
+               printf("\n Enter the new password: ");
+               fgets(new_pwd,50,stdin);
+               new_pwd[strlen(new_pwd) - 1] = '\0';
+               r  = password_strength(new_pwd);
+               if(r==1)
+               {
+               printf("\n--------------------------------------------------------------\n");
+               char *encrp_1;
+               encrp_1 = ceaser_cipher_encrypt(new_pwd); //first layer of encryption
+               unsigned long num;
+               num = hash(encrp_1);
+                
+               modify_master_password(str,num);
+               free(encrp_1);
+               }
+               else
+               {
+               printf("\nYour Password is weak , use a password with 6 characters or more , uppercase , lowercase , numbers and special characters (!,@,#,$,%c,^,&,*\n",'%');
+               logged_in(str);
+               }
+               break;
+               printf("\n--------------------------------------------------------------\n");
+               break;
+        
+        case 8: 
                 printf("\nLOGGING OUT...\n\n");
                 main_menu();
                 break;
@@ -580,6 +622,7 @@ void searchrecord(char *str,unsigned long num)
     sqlite3_close(db);
 }
 
+//passcode generation function
 void passcode(char* user)
 {
 	srand(time(NULL));
@@ -613,4 +656,3 @@ void passcode(char* user)
 
    	sqlite3_close(db);
 }
-

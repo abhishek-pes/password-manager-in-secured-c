@@ -25,7 +25,7 @@ static void store_master_password(char *usr,unsigned long pswd)
 }
 
 //djb hash function
-static unsigned long hash(char *str)
+unsigned long hash(char *str)
 {
 
     unsigned long hash = 5381;
@@ -77,7 +77,7 @@ int password_strength(char *message)
 
 
 //ceaser cypher encryption function
-static char* ceaser_cipher_encrypt(char *message)
+char* ceaser_cipher_encrypt(char *message)
 {
     char ch;
 	int i, key;

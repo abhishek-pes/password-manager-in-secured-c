@@ -8,3 +8,5 @@ char* random_number();
 void forgot_password();
 void main_menu();
 int password_strength(char *message);
+unsigned long hash(char *str);
+char* ceaser_cipher_encrypt(char *message);
